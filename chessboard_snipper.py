@@ -1,7 +1,3 @@
-# get_chessboard.py (renamed to chessboard_snipper.py)
-# Module to detect, crop, and preprocess a chessboard image.
-# Outputs: list of 64 RGB float32 tiles (64x64x3), the cropped/resized board (BGR uint8 512x512), and bbox.
-
 import cv2
 import numpy as np
 from typing import Tuple, List, Union, Optional
@@ -27,10 +23,6 @@ def _square_from_bbox(x:int, y:int, w:int, h:int, img_w:int, img_h:int, pad:int=
     return int(x1), int(y1), int(side), int(side)
 
 def _detect_square_bbox(image: np.ndarray) -> Tuple[int,int,int,int]:
-    """
-    Detects the chessboard and returns a square bbox (x,y,w,h).
-    Uses contour approximation + fallbacks (minAreaRect, centered square).
-    """
     h_img, w_img = image.shape[:2]
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray, 9, 75, 75)
@@ -117,10 +109,6 @@ def _crop_board(image: np.ndarray, bbox: Tuple[int,int,int,int]) -> np.ndarray:
     return crop
 
 def _preprocess_board_to_tiles(board_image: np.ndarray) -> List[np.ndarray]:
-    """
-    Given a cropped board image (BGR), resize to BOARD_SIZE_PX and produce 64 tiles.
-    Output tiles are RGB float32 normalized 0..1, shape (64,64,3).
-    """
     resized = cv2.resize(board_image, (BOARD_SIZE_PX, BOARD_SIZE_PX), interpolation=cv2.INTER_AREA)
     tiles: List[np.ndarray] = []
     for r in range(8):
@@ -131,30 +119,14 @@ def _preprocess_board_to_tiles(board_image: np.ndarray) -> List[np.ndarray]:
             x2 = (c + 1) * MODEL_SQUARE_SIZE
             tile = resized[y1:y2, x1:x2]
             tile_rgb = cv2.cvtColor(tile, cv2.COLOR_BGR2RGB)
-            tile_f = tile_rgb.astype(np.float32) / 255.0
+            tile_f = tile_rgb.astype(np.float32)
             tiles.append(tile_f)
     return tiles
-
-# Public API ------------------------------------------------
 
 ImageInput = Union[np.ndarray, bytes, str]
 
 def process_image(image_input: ImageInput) -> Optional[Tuple[List[np.ndarray], np.ndarray, Tuple[int,int,int,int]]]:
-    """
-    Main entry point.
 
-    Args:
-        image_input: one of:
-            - numpy.ndarray (OpenCV BGR image)
-            - bytes (raw uploaded file bytes)
-            - str (path to file)
-
-    Returns:
-        (model_inputs, board_image, bbox) or None on failure
-        - model_inputs: list of 64 numpy arrays (64,64,3) float32 in RGB order normalized 0..1
-        - board_image: cropped & resized square board in BGR uint8 shape (512,512,3)
-        - bbox: (x,y,w,h) integer bbox in original image coords used for the crop
-    """
     try:
         # load image depending on type
         if isinstance(image_input, np.ndarray):
