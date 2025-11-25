@@ -1,23 +1,17 @@
 Python
-
 venv/
+env/
 pycache/
 *.pyc
 *.pyo
-
-Data & Models (Don't commit large files)
-
 raw_data/
 raw_data.zip
 model/
 labels/
-images_to_check_chessboard_snipping/
-*.keras
-*.h5
-
 OS
-
 .DS_Store
-
 instance/
 .db
+.env
+.DS_Store
+Thumbs.db

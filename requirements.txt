@@ -1,9 +1,11 @@
-tensorflow
-opencv-python
-numpy
 flask
-python-chess>=1.0
-scipy
 flask-sqlalchemy
 flask-login
+tensorflow-cpu
+numpy
+opencv-python-headless
+scipy
+gunicorn
+psycopg2-binary
 email-validator
+python-dotenv
