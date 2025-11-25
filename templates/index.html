@@ -33,7 +33,7 @@
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(16px);
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            height: 120px; /* Increased height for larger title */
+            height: 120px; /* Fixed height for bigger header */
         }
 
         /* History Drawer Animation */
@@ -72,7 +72,7 @@
         }
     </style>
 </head>
-<!-- Increased padding top to account for taller header -->
+<!-- Added pt-32 to body to account for TALLER fixed header -->
 <body class="flex flex-col text-lg lg:text-xl relative pt-32">
 
     <!-- TOP NAVIGATION BAR -->
@@ -82,10 +82,9 @@
         <div class="hidden md:block w-40"></div>
 
         <!-- CENTERED LOGO & TITLE -->
-        <!-- Absolute positioning ensures it stays dead center regardless of side content -->
         <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-4">
-            <h1 class="text-6xl md:text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 leading-tight whitespace-nowrap">
-                <i class="fa-solid fa-chess-knight mr-4"></i>SnapFen
+            <h1 class="text-3xl md:text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 leading-tight whitespace-nowrap transition-all duration-300">
+                <i class="fa-solid fa-chess-knight mr-2 md:mr-4"></i>SnapFen
             </h1>
         </div>
 
@@ -153,15 +152,15 @@
         <!-- LEFT COLUMN: Controls -->
         <div class="w-full md:w-1/2 p-8 md:p-16 flex flex-col border-b md:border-b-0 md:border-r border-white/10">
             
-            <!-- MOVED TITLE: Now an H2 above the drop zone -->
+            <!-- TITLE HEADING -->
             <div class="mb-8 text-center md:text-left">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-200 leading-relaxed">
-                    Upload a screenshot. <span class="text-blue-400">We'll handle the rest.</span>
+                    Upload a screenshot.<span class="text-blue-400">We'll handle the rest.</span>
                 </h2>
             </div>
 
             <!-- Upload Zone -->
-            <div id="drop-zone" class="flex-1 flex flex-col justify-center items-center border-4 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer relative group min-h-[450px]">
+            <div id="drop-zone" class="flex-1 flex flex-col justify-center items-center border-4 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer relative group min-h-[450px] mt-4">
                 <input type="file" id="file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                 <div class="text-center space-y-8 pointer-events-none">
                     <div class="w-36 h-36 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -180,15 +179,24 @@
                     <img id="main-preview" src="" class="max-w-full max-h-[60vh] object-contain shadow-2xl rounded-lg">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-6 mt-8">
-                    <button id="btn-crop-modal" class="py-6 px-8 bg-gray-800 hover:bg-gray-700 text-white text-2xl rounded-2xl font-bold transition shadow-xl border border-white/10 flex items-center justify-center gap-3">
-                        <i class="fa-solid fa-crop-simple"></i> Adjust Crop
+                <!-- Action Buttons (UPDATED: 3 Buttons Always Visible) -->
+                <div class="grid grid-cols-3 gap-4 mt-8">
+                    <!-- New Image Button -->
+                    <button id="btn-new-image" class="py-6 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-xl rounded-2xl font-bold transition shadow-xl shadow-emerald-500/20 border border-white/10 flex flex-col items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus text-2xl"></i>
+                        <span>New</span>
                     </button>
-                    <button id="btn-new-image" class="hidden py-6 px-8 bg-emerald-600 hover:bg-emerald-500 text-white text-2xl rounded-2xl font-bold transition shadow-xl shadow-emerald-500/20 border border-white/10 flex items-center justify-center gap-3">
-                        <i class="fa-solid fa-plus"></i> New Image
+
+                    <!-- Crop Button -->
+                    <button id="btn-crop-modal" class="py-6 px-4 bg-gray-800 hover:bg-gray-700 text-white text-xl rounded-2xl font-bold transition shadow-xl border border-white/10 flex flex-col items-center justify-center gap-2">
+                        <i class="fa-solid fa-crop-simple text-2xl"></i>
+                        <span>Crop</span>
                     </button>
-                    <button id="btn-quick-scan" class="py-6 px-8 bg-blue-600 hover:bg-blue-500 text-white text-2xl rounded-2xl font-bold transition shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3">
-                        <i class="fa-solid fa-bolt"></i> Scan Board
+
+                    <!-- Scan Button -->
+                    <button id="btn-quick-scan" class="py-6 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xl rounded-2xl font-bold transition shadow-xl shadow-blue-500/20 flex flex-col items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt text-2xl"></i>
+                        <span>Scan</span>
                     </button>
                 </div>
             </div>
@@ -254,53 +262,50 @@
         </div>
     </main>
 
-    <!-- HOW TO USE -->
+    <!-- HOW TO USE SECTION -->
     <section class="glass-section py-20 px-8 border-t border-white/10">
         <div class="max-w-[100rem] mx-auto">
             <div class="text-center mb-16">
                 <h2 class="text-5xl md:text-6xl font-bold text-white mb-6">How to Use</h2>
                 <p class="text-2xl text-gray-400">Get your FEN in seconds with these simple steps.</p>
             </div>
-            <div class="flex flex-wrap justify-center gap-10">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
                 <!-- Step 1 -->
-                <div class="w-full md:w-[45%] lg:w-[30%] xl:w-[18%] p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+                <div class="p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
                     <div class="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 text-3xl mb-8">
                         <i class="fa-solid fa-upload"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-white mb-3">1. Upload</h3>
                     <p class="text-gray-400 leading-relaxed">Upload a clear screenshot of your chessboard from any site or app.</p>
                 </div>
+
                 <!-- Step 2 -->
-                <div class="w-full md:w-[45%] lg:w-[30%] xl:w-[18%] p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+                <div class="p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
                     <div class="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-3xl mb-8">
                         <i class="fa-solid fa-crop-simple"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-white mb-3">2. Crop</h3>
                     <p class="text-gray-400 leading-relaxed">Use the crop tool to remove UI elements. Keep ONLY the board visible.</p>
                 </div>
+
                 <!-- Step 3 -->
-                <div class="w-full md:w-[45%] lg:w-[30%] xl:w-[18%] p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition relative overflow-hidden">
+                <div class="p-10 rounded-3xl bg-white/5 border-2 border-orange-500/20 hover:bg-white/10 transition relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">IMPORTANT</div>
                     <div class="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center text-orange-400 text-3xl mb-8">
                         <i class="fa-solid fa-toggle-on"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-white mb-3">3. Perspective</h3>
                     <p class="text-gray-400 leading-relaxed">Playing as <strong>Black</strong>? Toggle the switch. We assume White is at bottom by default.</p>
                 </div>
+
                 <!-- Step 4 -->
-                <div class="w-full md:w-[45%] lg:w-[30%] xl:w-[18%] p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+                <div class="p-10 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
                     <div class="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center text-green-400 text-3xl mb-8">
                         <i class="fa-solid fa-chess"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-white mb-3">4. Get FEN</h3>
-                    <p class="text-gray-400 leading-relaxed">Click <strong>Scan Board</strong> to get the position string instantly.</p>
-                </div>
-                <!-- Step 5 -->
-                <div class="w-full md:w-[45%] lg:w-[30%] xl:w-[18%] p-10 rounded-3xl bg-white/5 border-2 border-pink-500/20 hover:bg-white/10 transition">
-                    <div class="w-16 h-16 rounded-2xl bg-pink-500/20 flex items-center justify-center text-pink-400 text-3xl mb-8">
-                        <i class="fa-solid fa-comment-dots"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white mb-3">5. Feedback</h3>
-                    <p class="text-gray-400 leading-relaxed">Error? Click the <strong>?</strong> button at the bottom right to report it.</p>
+                    <p class="text-gray-400 leading-relaxed">Click <strong>Scan Board</strong> to generate the FEN instantly. It copies easily to any chess engine.</p>
                 </div>
             </div>
         </div>
@@ -312,7 +317,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
                 <div class="space-y-6">
                     <h4 class="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">SnapFen</h4>
-                    <p class="text-gray-400 text-lg leading-relaxed">Bridging the gap between physical boards and digital analysis.</p>
+                    <p class="text-gray-400 text-lg leading-relaxed">Bridging the gap between physical boards and digital analysis. The fastest way to digitize your chess games.</p>
                     <div class="flex items-center gap-2 text-green-400 bg-green-400/10 px-4 py-2 rounded-full w-fit border border-green-400/20">
                         <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
                         <span class="text-sm font-bold uppercase tracking-wider">System Operational</span>
@@ -340,10 +345,10 @@
                     <h5 class="text-xl font-bold text-white uppercase tracking-widest">Connect</h5>
                     <p class="text-gray-400 text-lg">🚀 Got a query, a bug to squash, or a brilliant idea? <br><span class="text-blue-400 font-semibold">Let's connect and build something cool.</span></p>
                     <div class="flex gap-5">
-                        <a href="#" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-github text-3xl"></i></a>
-                        <a href="#" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-400 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-twitter text-3xl"></i></a>
+                        <a href="https://github.com/Prajjwal-Vish" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-github text-3xl"></i></a>
+                        <a href="https://x.com/prajjwal_vish" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-400 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-twitter text-3xl"></i></a>
                         <a href="#" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-pink-600 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-instagram text-3xl"></i></a>
-                        <a href="#" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-700 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-linkedin-in text-3xl"></i></a>
+                        <a href="https://www.linkedin.com/in/prajjwal-vishwakarma-1564b1230/" class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-blue-700 hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-lg"><i class="fa-brands fa-linkedin-in text-3xl"></i></a>
                     </div>
                 </div>
             </div>
@@ -412,7 +417,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
-        // ... [JS LOGIC - Same as previous version] ...
+        // --- VARIABLES ---
         let cropper = null;
         let currentActiveBlob = null;
         const dropZone = document.getElementById('drop-zone');
@@ -454,6 +459,9 @@
                 dropZone.classList.add('hidden');
                 previewContainer.classList.remove('hidden');
                 resetResults();
+                
+                // RESET THE INPUT VALUE! This fixes the "can't select same file twice" bug.
+                fileInput.value = ''; 
             }
         }
 
@@ -582,14 +590,23 @@
 
         function setLoading(isLoading) {
             if (isLoading) {
+                // Only disable scan/crop/new buttons visually but keep layout
                 btnQuickScan.innerHTML = '<div class="loader"></div>';
                 btnConfirmCrop.innerHTML = '<div class="loader"></div>';
-                btnQuickScan.disabled = true; btnConfirmCrop.disabled = true; btnCropModal.disabled = true; btnNewImage.disabled = true;
+                btnQuickScan.disabled = true; 
+                btnConfirmCrop.disabled = true; 
+                btnCropModal.disabled = true; 
+                btnNewImage.disabled = true;
+                
                 resultContent.classList.add('opacity-50');
             } else {
-                btnQuickScan.innerHTML = '<i class="fa-solid fa-bolt"></i> Scan Board';
+                btnQuickScan.innerHTML = '<i class="fa-solid fa-bolt text-2xl"></i> <span>Scan</span>';
                 btnConfirmCrop.innerHTML = 'Confirm & Analyze';
-                btnQuickScan.disabled = false; btnConfirmCrop.disabled = false; btnCropModal.disabled = false; btnNewImage.disabled = false;
+                btnQuickScan.disabled = false; 
+                btnConfirmCrop.disabled = false; 
+                btnCropModal.disabled = false; 
+                btnNewImage.disabled = false;
+                
                 resultContent.classList.remove('opacity-50');
             }
         }
@@ -602,18 +619,18 @@
             if (base64Image) analyzedPreview.src = base64Image;
             document.getElementById('link-lichess').href = `https://lichess.org/analysis/${fen}`;
             document.getElementById('link-chesscom').href = `https://www.chess.com/analysis?fen=${fen}`;
-            btnCropModal.classList.add('hidden');
-            btnNewImage.classList.remove('hidden');
+            
+            // Buttons Logic: Keep all visible but disable scan until change
             btnQuickScan.classList.add('btn-disabled', 'opacity-50');
         }
 
         function resetResults() {
             emptyState.classList.remove('hidden');
             resultContent.classList.add('hidden');
-            btnCropModal.classList.remove('hidden');
-            btnNewImage.classList.add('hidden');
+            
+            // Reset button states
             btnQuickScan.classList.remove('btn-disabled', 'opacity-50');
-            btnQuickScan.innerHTML = '<i class="fa-solid fa-bolt"></i> Scan Board';
+            btnQuickScan.innerHTML = '<i class="fa-solid fa-bolt text-2xl"></i> <span>Scan</span>';
         }
 
         btnCopy.addEventListener('click', () => {
