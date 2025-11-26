@@ -1,7 +1,7 @@
 flask
 flask-sqlalchemy
 flask-login
-tensorflow-cpu
+tflite-runtime==2.14.0
 numpy
 opencv-python-headless
 scipy
