@@ -332,6 +332,9 @@
 # Adding code compatible with tensorflow lite version
 
 
+
+
+
 import numpy as np
 import cv2
 from flask import Flask, request, render_template, jsonify, redirect, url_for, flash
@@ -347,9 +350,21 @@ from email.mime.image import MIMEImage
 import os
 from dotenv import load_dotenv
 
-# --- NEW IMPORT: LIGHTWEIGHT TFLITE ---
-# We use tflite_runtime instead of the massive tensorflow library
-import tflite_runtime.interpreter as tflite
+# --- SMART IMPORT BLOCK (CRITICAL FOR WINDOWS/RENDER COMPATIBILITY) ---
+# This must be the ONLY place we import tflite logic.
+try:
+    # 1. Try Lightweight Runtime (For Render/Linux)
+    import tflite_runtime.interpreter as tflite
+    print("--- Using TFLite Runtime (Lightweight) ---")
+except ImportError:
+    # 2. Fallback to Full TensorFlow (For Local Windows)
+    try:
+        import tensorflow.lite as tflite
+        print("--- Using Full TensorFlow Lite (Local Fallback) ---")
+    except ImportError:
+        print("CRITICAL ERROR: Neither 'tflite_runtime' nor 'tensorflow' is installed.")
+        print("Please run: pip install tensorflow")
+# ---------------------------------------------------------------------
 
 # Load environment variables locally
 load_dotenv()
@@ -414,10 +429,31 @@ CLASS_NAMES = None
 def load_resources():
     global INTERPRETER, INPUT_DETAILS, OUTPUT_DETAILS, CLASS_NAMES
     
+    # --- DEBUGGING: PRINT FILE SYSTEM ---
+    print("\n" + "="*30)
+    print("🔍 DEBUGGING PATHS")
+    print(f"Looking for model at: {MODEL_PATH}")
+    
+    if not MODEL_PATH.exists():
+        print(f"❌ ERROR: Model file NOT found at {MODEL_PATH}")
+        # Print what IS in the folder to help debug casing issues
+        parent_dir = MODEL_PATH.parent
+        if parent_dir.exists():
+            print(f"Contents of {parent_dir}:")
+            for item in parent_dir.iterdir():
+                print(f"   - {item.name}")
+        else:
+             print(f"❌ The folder {parent_dir} does not exist either!")
+    else:
+        print(f"✅ Model File Found!")
+    print("="*30 + "\n")
+    # ------------------------------------
+
     if MODEL_PATH.exists() and LABELS_PATH.exists():
-        print(f"--- Loading TFLite Model from: {MODEL_PATH} ---")
+        print(f"--- Loading TFLite Model... ---")
         try:
-            # Load TFLite Interpreter (Using the runtime, not full TF)
+            # Load TFLite Interpreter
+            # Note: We use 'tflite' here, which maps to whichever library was successfully imported at the top
             INTERPRETER = tflite.Interpreter(model_path=str(MODEL_PATH))
             INTERPRETER.allocate_tensors()
             
@@ -426,12 +462,13 @@ def load_resources():
             OUTPUT_DETAILS = INTERPRETER.get_output_details()
             
             CLASS_NAMES = LABELS_PATH.read_text().splitlines()
-            print("--- System Ready (TFLite Runtime Mode) ---")
+            print("--- System Ready (TFLite Mode) ---")
         except Exception as e:
             print(f"CRITICAL ERROR loading model: {e}")
+            import traceback
+            traceback.print_exc()
     else:
         print(f"ERROR: Could not find model/labels.")
-        print(f"Looked for: {MODEL_PATH}")
 
 # --- AUTH ROUTES ---
 
