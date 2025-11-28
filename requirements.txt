@@ -7,3 +7,4 @@ email-validator
 python-dotenv
 opencv-python-headless
 scipy
+python-chess
