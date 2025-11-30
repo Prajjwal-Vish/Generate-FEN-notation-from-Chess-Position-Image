@@ -1062,17 +1062,21 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Scan 
 
-# Helper modules
-try:
-    from chessboard_snipper import process_image
-    from flip_board_to_black_pov import assemble_fen_from_predictions, black_perspective_fen
-except:
-    print("❌ Missing helper modules!")
+
 
 # ===========================
 #  FLASK APP INITIALIZATION
 # ===========================
 app = Flask(__name__)
+
+# Import helper modules AFTER app initialization (Render fix)
+try:
+    from chessboard_snipper import process_image
+    from flip_board_to_black_pov import assemble_fen_from_predictions, black_perspective_fen
+    print("✅ Helper modules loaded successfully.")
+except Exception as e:
+    print(f"❌ Helper module import failed: {e}")
+
 
 # Render fix: cannot write to /app/instance
 import tempfile
@@ -1274,6 +1278,8 @@ def predict():
 
     squares, viz, _ = processed
     indices = predict_with_voting(INTERPRETER, squares)
+        
+    from flip_board_to_black_pov import assemble_fen_from_predictions, black_perspective_fen
 
     labels = [CLASS_NAMES[i] for i in indices]
     fen = assemble_fen_from_predictions(labels)
