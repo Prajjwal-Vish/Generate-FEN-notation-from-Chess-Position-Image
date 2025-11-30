@@ -744,6 +744,284 @@
 
 
 
+
+
+
+
+# import numpy as np
+# import cv2
+# from flask import Flask, request, render_template, jsonify, redirect, url_for, flash
+# from pathlib import Path
+# import io
+# from scipy import stats
+# import base64 
+# import smtplib
+# import threading
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
+# from email.mime.image import MIMEImage
+# import os
+# from dotenv import load_dotenv
+
+# # --- BULLETPROOF IMPORT BLOCK ---
+# tflite = None # Initialize as None to prevent NameError
+
+# try:
+#     # 1. Try Lightweight Runtime (Preferred for Render)
+#     import tflite_runtime.interpreter as tflite
+#     print("--- ✅ SUCCESS: Using TFLite Runtime ---")
+# except ImportError as e1:
+#     print(f"--- ⚠️ TFLite Runtime Import Failed: {e1} ---")
+#     try:
+#         # 2. Fallback to Full TensorFlow (For Local/Dev)
+#         import tensorflow.lite as tflite
+#         print("--- ✅ SUCCESS: Using Full TensorFlow Lite ---")
+#     except ImportError as e2:
+#         print(f"--- ❌ CRITICAL: TensorFlow Import Failed: {e2} ---")
+#         print("--- No valid TFLite library found. Model loading will fail. ---")
+# # --------------------------------
+
+# load_dotenv()
+
+# from flask_sqlalchemy import SQLAlchemy
+# from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+# from werkzeug.security import generate_password_hash, check_password_hash
+# from models import db, User, Scan 
+
+# try:
+#     from chessboard_snipper import process_image
+#     from flip_board_to_black_pov import assemble_fen_from_predictions, black_perspective_fen
+# except ImportError:
+#     print("CRITICAL: Missing helper modules.")
+
+# app = Flask(__name__)
+
+# app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chess-vision-secret-key-mvp-2025')
+
+# database_url = os.environ.get('DATABASE_URL', 'sqlite:///chessvision.db')
+# if database_url and database_url.startswith("postgres://"):
+#     database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# BASE_DIR = Path(__file__).resolve().parent
+# MODEL_PATH = BASE_DIR / "Fine_tuned_CNN_Model" / "chess_model_v5.tflite" # Updated to v5
+# LABELS_PATH = BASE_DIR / "labels" / "class_names.txt"
+
+# EMAIL_SENDER = os.environ.get('EMAIL_SENDER')
+# EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+# EMAIL_RECEIVER = os.environ.get('EMAIL_RECEIVER')
+
+# db.init_app(app) 
+# login_manager = LoginManager()
+# login_manager.login_view = 'login' 
+# login_manager.init_app(app)
+
+# @login_manager.user_loader
+# def load_user(id):
+#     return User.query.get(int(id))
+
+# INTERPRETER = None
+# INPUT_DETAILS = None
+# OUTPUT_DETAILS = None
+# CLASS_NAMES = None
+
+# def load_resources():
+#     global INTERPRETER, INPUT_DETAILS, OUTPUT_DETAILS, CLASS_NAMES
+    
+#     print("\n" + "="*30)
+#     print("🔍 DEPLOYMENT DEBUGGER")
+#     print(f"Base Directory: {BASE_DIR}")
+    
+#     # Check Files
+#     model_exists = MODEL_PATH.exists()
+#     labels_exists = LABELS_PATH.exists()
+    
+#     if model_exists: print(f"✅ Model File Found: {MODEL_PATH}")
+#     else: print(f"❌ Model NOT Found at: {MODEL_PATH}")
+    
+#     if labels_exists: print(f"✅ Labels File Found: {LABELS_PATH}")
+#     else: print(f"❌ Labels NOT Found at: {LABELS_PATH}")
+
+#     # Check Library
+#     if tflite is None:
+#         print("❌ CRITICAL: TFLite Library is NOT loaded. Cannot initialize interpreter.")
+#     else:
+#         print(f"✅ TFLite Library is loaded: {tflite}")
+
+#     print("="*30 + "\n")
+
+#     if model_exists and labels_exists and tflite is not None:
+#         try:
+#             INTERPRETER = tflite.Interpreter(model_path=str(MODEL_PATH))
+#             INTERPRETER.allocate_tensors()
+#             INPUT_DETAILS = INTERPRETER.get_input_details()
+#             OUTPUT_DETAILS = INTERPRETER.get_output_details()
+#             CLASS_NAMES = LABELS_PATH.read_text().splitlines()
+#             print("--- System Ready (TFLite Mode) ---")
+#         except Exception as e:
+#             print(f"CRITICAL ERROR loading model: {e}")
+#             import traceback
+#             traceback.print_exc()
+
+# # ... [Routes for Signup, Login, Logout remain unchanged] ...
+# @app.route('/signup', methods=['GET', 'POST'])
+# def signup():
+#     if request.method == 'POST':
+#         email = request.form.get('email')
+#         username = request.form.get('username')
+#         password = request.form.get('password')
+#         user = User.query.filter_by(email=email).first()
+#         if user: flash('Email exists.', 'error')
+#         else:
+#             new_user = User(email=email, username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
+#             db.session.add(new_user); db.session.commit(); login_user(new_user)
+#             return redirect(url_for('index'))
+#     return render_template('signup.html')
+
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     if request.method == 'POST':
+#         user = User.query.filter_by(email=request.form.get('email')).first()
+#         if user and check_password_hash(user.password, request.form.get('password')):
+#             login_user(user, remember=True); return redirect(url_for('index'))
+#         else: flash('Invalid credentials.', 'error')
+#     return render_template('login.html')
+
+# @app.route('/logout')
+# @login_required
+# def logout(): logout_user(); return redirect(url_for('index'))
+
+# @app.route('/api/history')
+# @login_required
+# def get_history():
+#     try:
+#         scans = Scan.query.filter_by(user_id=current_user.id).order_by(Scan.timestamp.desc()).limit(5).all()
+#         return jsonify([{'fen': s.fen, 'image': s.image_data, 'date': s.timestamp.strftime("%b %d")} for s in scans])
+#     except: return jsonify([])
+
+# @app.route('/')
+# def index(): return render_template('index.html', user=current_user)
+
+# # ... [Helper functions tflite_predict, voting, color correction remain unchanged] ...
+# def tflite_predict(interpreter, input_data):
+#     # Ensure interpreter is loaded
+#     if interpreter is None: raise ValueError("Model Interpreter not loaded")
+#     input_idx = INPUT_DETAILS[0]['index']
+#     output_idx = OUTPUT_DETAILS[0]['index']
+#     preds = []
+#     for i in range(len(input_data)):
+#         img = input_data[i:i+1].astype(np.float32)
+#         interpreter.set_tensor(input_idx, img)
+#         interpreter.invoke()
+#         preds.append(interpreter.get_tensor(output_idx)[0])
+#     return np.array(preds)
+
+# def predict_with_voting(interpreter, squares_batch):
+#     # ... (Same augmentation logic) ...
+#     augmented = []
+#     for sq in squares_batch:
+#         augmented.append(sq)
+#         augmented.append(np.roll(sq, -2, axis=1))
+#         augmented.append(np.roll(sq, -2, axis=0))
+#         augmented.append(np.clip(sq * 0.7, 0, 255))
+#         augmented.append(cv2.resize(sq[4:60, 4:60], (64, 64)))
+    
+#     preds = tflite_predict(interpreter, np.array(augmented))
+#     # Vote logic
+#     reshaped = preds.reshape(64, 5, preds.shape[1])
+#     return [stats.mode(np.argmax(reshaped[i], axis=1), keepdims=True).mode[0] for i in range(64)]
+
+# def correct_color_errors(img, label):
+#     # ... (Same color logic) ...
+#     if "empty" in label: return label
+#     if img.dtype != np.uint8: img = img.astype(np.uint8)
+#     gray = cv2.cvtColor(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2GRAY)
+#     h, w = gray.shape
+#     center = np.mean(gray[h//4:3*h//4, w//4:3*w//4])
+#     corners = np.mean([gray[0:10,0:10], gray[0:10,w-10:w], gray[h-10:h,0:10], gray[h-10:h,w-10:w]])
+#     if center - corners > 30 and "dark" in label: return label.replace("dark", "light")
+#     if center - corners < -30 and "light" in label: return label.replace("light", "dark")
+#     return label
+
+# @app.route('/predict', methods=['POST'])
+# def predict():
+#     if INTERPRETER is None: return jsonify({'error': 'AI Model not loaded on server'}), 500
+#     # ... (Same prediction flow) ...
+#     try:
+#         file = request.files['file']
+#         img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
+#         processed = process_image(img)
+#         if not processed: return jsonify({'error': 'Board not found'}), 400
+        
+#         inputs, viz, _ = processed
+#         indices = predict_with_voting(INTERPRETER, inputs)
+#         labels = [correct_color_errors(inputs[i], CLASS_NAMES[idx]) for i, idx in enumerate(indices)]
+        
+#         fen = assemble_fen_from_predictions(labels)
+#         if request.form.get('pov') == 'b': fen = black_perspective_fen(fen)
+        
+#         b64_img = base64.b64encode(cv2.imencode(".jpg", viz)[1]).decode('utf-8')
+        
+#         if current_user.is_authenticated:
+#             db.session.add(Scan(fen=f"{fen} w KQkq - 0 1", image_data=f"data:image/jpeg;base64,{b64_img}", user_id=current_user.id))
+#             db.session.commit()
+            
+#         return jsonify({'fen': f"{fen} w KQkq - 0 1", 'cropped_image': f"data:image/jpeg;base64,{b64_img}"})
+#     except Exception as e: return jsonify({'error': str(e)}), 500
+
+# # ... [Email Logic Same as Before] ...
+# def send_email_async(feedback_text, tags, fen, original_img_bytes, crop_img_bytes):
+#     try:
+#         msg = MIMEMultipart()
+#         msg['From'] = EMAIL_SENDER
+#         msg['To'] = EMAIL_RECEIVER
+#         msg['Subject'] = f"[SnapFen Report] {tags}"
+#         body = f"<h3>Feedback</h3><p>{feedback_text}</p><p>FEN: {fen}</p>"
+#         msg.attach(MIMEText(body, 'html'))
+        
+#         if original_img_bytes:
+#             img1 = MIMEImage(original_img_bytes, name="original.png")
+#             msg.attach(img1)
+#         if crop_img_bytes:
+#             img2 = MIMEImage(crop_img_bytes, name="crop.png")
+#             msg.attach(img2)
+
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+#             server.send_message(msg)
+#     except Exception as e:
+#         print(f"Email Error: {e}")
+
+# @app.route('/report_issue', methods=['POST'])
+# def report_issue():
+#     tags = request.form.get('tags', 'General')
+#     feedback = request.form.get('feedback', 'No details')
+#     fen = request.form.get('fen', 'N/A')
+    
+#     orig_file = request.files.get('original_image')
+#     crop_file = request.files.get('cropped_image') 
+    
+#     orig_bytes = orig_file.read() if orig_file else None
+#     crop_bytes = crop_file.read() if crop_file else None
+
+#     thread = threading.Thread(target=send_email_async, args=(feedback, tags, fen, orig_bytes, crop_bytes))
+#     thread.start()
+
+#     return jsonify({'status': 'success'})
+
+# with app.app_context(): db.create_all()
+# load_resources()
+# if __name__ == '__main__': app.run(debug=True, port=5000)
+
+
+
+
+
+
+
 import numpy as np
 import cv2
 from flask import Flask, request, render_template, jsonify, redirect, url_for, flash
@@ -759,65 +1037,88 @@ from email.mime.image import MIMEImage
 import os
 from dotenv import load_dotenv
 
-# --- BULLETPROOF IMPORT BLOCK ---
-tflite = None # Initialize as None to prevent NameError
-
+# ===========================
+#  TFLITE SAFE IMPORT BLOCK
+# ===========================
+tflite = None
 try:
-    # 1. Try Lightweight Runtime (Preferred for Render)
     import tflite_runtime.interpreter as tflite
-    print("--- ✅ SUCCESS: Using TFLite Runtime ---")
-except ImportError as e1:
-    print(f"--- ⚠️ TFLite Runtime Import Failed: {e1} ---")
+    print("✔ Using TFLite Runtime")
+except ImportError:
     try:
-        # 2. Fallback to Full TensorFlow (For Local/Dev)
         import tensorflow.lite as tflite
-        print("--- ✅ SUCCESS: Using Full TensorFlow Lite ---")
-    except ImportError as e2:
-        print(f"--- ❌ CRITICAL: TensorFlow Import Failed: {e2} ---")
-        print("--- No valid TFLite library found. Model loading will fail. ---")
-# --------------------------------
+        print("✔ Using TensorFlow Lite Fallback")
+    except ImportError:
+        print("❌ CRITICAL: No TFLite library available!")
 
+# Load environment variables
 load_dotenv()
 
+# ===========================
+#  DATABASE + AUTH IMPORTS
+# ===========================
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Scan 
 
+# Helper modules
 try:
     from chessboard_snipper import process_image
     from flip_board_to_black_pov import assemble_fen_from_predictions, black_perspective_fen
-except ImportError:
-    print("CRITICAL: Missing helper modules.")
+except:
+    print("❌ Missing helper modules!")
 
+# ===========================
+#  FLASK APP INITIALIZATION
+# ===========================
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chess-vision-secret-key-mvp-2025')
+# Render fix: cannot write to /app/instance
+import tempfile
+app.instance_path = tempfile.mkdtemp()
 
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///chessvision.db')
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'chess-vision-secret-key-mvp')
+
+# ===========================
+#  DATABASE CONFIG
+# ===========================
+database_url = os.environ.get("DATABASE_URL")
+
+if database_url:
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+else:
+    database_url = "sqlite:///local.db"   # fallback for local testing
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "Fine_tuned_CNN_Model" / "chess_model_v5.tflite" # Updated to v5
-LABELS_PATH = BASE_DIR / "labels" / "class_names.txt"
+db.init_app(app)
 
-EMAIL_SENDER = os.environ.get('EMAIL_SENDER')
-EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
-EMAIL_RECEIVER = os.environ.get('EMAIL_RECEIVER')
-
-db.init_app(app) 
+# Login Manager
 login_manager = LoginManager()
-login_manager.login_view = 'login' 
+login_manager.login_view = 'login'
 login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
 
+# ===========================
+#  PATHS FOR MODEL + LABELS
+# ===========================
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "Fine_tuned_CNN_Model" / "chess_model_v5.tflite"
+LABELS_PATH = BASE_DIR / "labels" / "class_names.txt"
+
+EMAIL_SENDER = os.environ.get('EMAIL_SENDER')
+EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+EMAIL_RECEIVER = os.environ.get('EMAIL_RECEIVER')
+
+# ===========================
+#  LOAD MODEL + LABELS
+# ===========================
 INTERPRETER = None
 INPUT_DETAILS = None
 OUTPUT_DETAILS = None
@@ -825,55 +1126,52 @@ CLASS_NAMES = None
 
 def load_resources():
     global INTERPRETER, INPUT_DETAILS, OUTPUT_DETAILS, CLASS_NAMES
-    
-    print("\n" + "="*30)
-    print("🔍 DEPLOYMENT DEBUGGER")
-    print(f"Base Directory: {BASE_DIR}")
-    
-    # Check Files
-    model_exists = MODEL_PATH.exists()
-    labels_exists = LABELS_PATH.exists()
-    
-    if model_exists: print(f"✅ Model File Found: {MODEL_PATH}")
-    else: print(f"❌ Model NOT Found at: {MODEL_PATH}")
-    
-    if labels_exists: print(f"✅ Labels File Found: {LABELS_PATH}")
-    else: print(f"❌ Labels NOT Found at: {LABELS_PATH}")
 
-    # Check Library
+    print("\n===============================")
+    print("🔍 RESOURCE LOADER DEBUG")
+    print(f"Model path: {MODEL_PATH}")
+    print(f"Labels path: {LABELS_PATH}")
+
+    if not MODEL_PATH.exists():
+        print("❌ Model not found!")
+    if not LABELS_PATH.exists():
+        print("❌ Labels not found!")
+
     if tflite is None:
-        print("❌ CRITICAL: TFLite Library is NOT loaded. Cannot initialize interpreter.")
-    else:
-        print(f"✅ TFLite Library is loaded: {tflite}")
+        print("❌ No TFLite backend loaded!")
+        return
 
-    print("="*30 + "\n")
+    try:
+        INTERPRETER = tflite.Interpreter(model_path=str(MODEL_PATH))
+        INTERPRETER.allocate_tensors()
+        INPUT_DETAILS = INTERPRETER.get_input_details()
+        OUTPUT_DETAILS = INTERPRETER.get_output_details()
+        CLASS_NAMES = LABELS_PATH.read_text().splitlines()
+        print("✔ Model loaded successfully")
+    except Exception as e:
+        print("❌ Model load error:", e)
 
-    if model_exists and labels_exists and tflite is not None:
-        try:
-            INTERPRETER = tflite.Interpreter(model_path=str(MODEL_PATH))
-            INTERPRETER.allocate_tensors()
-            INPUT_DETAILS = INTERPRETER.get_input_details()
-            OUTPUT_DETAILS = INTERPRETER.get_output_details()
-            CLASS_NAMES = LABELS_PATH.read_text().splitlines()
-            print("--- System Ready (TFLite Mode) ---")
-        except Exception as e:
-            print(f"CRITICAL ERROR loading model: {e}")
-            import traceback
-            traceback.print_exc()
-
-# ... [Routes for Signup, Login, Logout remain unchanged] ...
+# ===========================
+#  AUTH ROUTES
+# ===========================
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         email = request.form.get('email')
         username = request.form.get('username')
         password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user: flash('Email exists.', 'error')
-        else:
-            new_user = User(email=email, username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
-            db.session.add(new_user); db.session.commit(); login_user(new_user)
-            return redirect(url_for('index'))
+
+        if User.query.filter_by(email=email).first():
+            flash("Email already registered.", "error")
+            return render_template('signup.html')
+
+        hashed = generate_password_hash(password, method='pbkdf2:sha256')
+        user = User(email=email, username=username, password=hashed)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for('index'))
+
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -881,133 +1179,163 @@ def login():
     if request.method == 'POST':
         user = User.query.filter_by(email=request.form.get('email')).first()
         if user and check_password_hash(user.password, request.form.get('password')):
-            login_user(user, remember=True); return redirect(url_for('index'))
-        else: flash('Invalid credentials.', 'error')
+            login_user(user)
+            return redirect(url_for('index'))
+        flash("Invalid email or password.", "error")
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
-def logout(): logout_user(); return redirect(url_for('index'))
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
+# ===========================
+#  HISTORY API
+# ===========================
 @app.route('/api/history')
 @login_required
 def get_history():
-    try:
-        scans = Scan.query.filter_by(user_id=current_user.id).order_by(Scan.timestamp.desc()).limit(5).all()
-        return jsonify([{'fen': s.fen, 'image': s.image_data, 'date': s.timestamp.strftime("%b %d")} for s in scans])
-    except: return jsonify([])
+    scans = Scan.query.filter_by(user_id=current_user.id)\
+                      .order_by(Scan.timestamp.desc())\
+                      .limit(5).all()
 
+    return jsonify([
+        {
+            'fen': s.fen,
+            'image': s.image_data,
+            'date': s.timestamp.strftime("%b %d, %H:%M")
+        }
+        for s in scans
+    ])
+
+# ===========================
+#  MAIN ROUTE
+# ===========================
 @app.route('/')
-def index(): return render_template('index.html', user=current_user)
+def index():
+    return render_template('index.html', user=current_user)
 
-# ... [Helper functions tflite_predict, voting, color correction remain unchanged] ...
+# ===========================
+#  AI INFERENCE HELPERS
+# ===========================
 def tflite_predict(interpreter, input_data):
-    # Ensure interpreter is loaded
-    if interpreter is None: raise ValueError("Model Interpreter not loaded")
-    input_idx = INPUT_DETAILS[0]['index']
-    output_idx = OUTPUT_DETAILS[0]['index']
+    if interpreter is None:
+        raise ValueError("Model interpreter not loaded")
+
+    input_index = INPUT_DETAILS[0]['index']
+    output_index = OUTPUT_DETAILS[0]['index']
+
     preds = []
     for i in range(len(input_data)):
         img = input_data[i:i+1].astype(np.float32)
-        interpreter.set_tensor(input_idx, img)
+        interpreter.set_tensor(input_index, img)
         interpreter.invoke()
-        preds.append(interpreter.get_tensor(output_idx)[0])
+        preds.append(interpreter.get_tensor(output_index)[0])
+
     return np.array(preds)
 
-def predict_with_voting(interpreter, squares_batch):
-    # ... (Same augmentation logic) ...
+def predict_with_voting(interpreter, squares):
     augmented = []
-    for sq in squares_batch:
+    for sq in squares:
         augmented.append(sq)
         augmented.append(np.roll(sq, -2, axis=1))
         augmented.append(np.roll(sq, -2, axis=0))
         augmented.append(np.clip(sq * 0.7, 0, 255))
         augmented.append(cv2.resize(sq[4:60, 4:60], (64, 64)))
-    
+
     preds = tflite_predict(interpreter, np.array(augmented))
-    # Vote logic
     reshaped = preds.reshape(64, 5, preds.shape[1])
-    return [stats.mode(np.argmax(reshaped[i], axis=1), keepdims=True).mode[0] for i in range(64)]
 
-def correct_color_errors(img, label):
-    # ... (Same color logic) ...
-    if "empty" in label: return label
-    if img.dtype != np.uint8: img = img.astype(np.uint8)
-    gray = cv2.cvtColor(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2GRAY)
-    h, w = gray.shape
-    center = np.mean(gray[h//4:3*h//4, w//4:3*w//4])
-    corners = np.mean([gray[0:10,0:10], gray[0:10,w-10:w], gray[h-10:h,0:10], gray[h-10:h,w-10:w]])
-    if center - corners > 30 and "dark" in label: return label.replace("dark", "light")
-    if center - corners < -30 and "light" in label: return label.replace("light", "dark")
-    return label
+    final_idx = []
+    for i in range(64):
+        votes = np.argmax(reshaped[i], axis=1)
+        final_idx.append(stats.mode(votes, keepdims=True).mode[0])
 
+    return final_idx
+
+# ===========================
+#  PREDICTION ROUTE
+# ===========================
 @app.route('/predict', methods=['POST'])
 def predict():
-    if INTERPRETER is None: return jsonify({'error': 'AI Model not loaded on server'}), 500
-    # ... (Same prediction flow) ...
-    try:
-        file = request.files['file']
-        img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-        processed = process_image(img)
-        if not processed: return jsonify({'error': 'Board not found'}), 400
-        
-        inputs, viz, _ = processed
-        indices = predict_with_voting(INTERPRETER, inputs)
-        labels = [correct_color_errors(inputs[i], CLASS_NAMES[idx]) for i, idx in enumerate(indices)]
-        
-        fen = assemble_fen_from_predictions(labels)
-        if request.form.get('pov') == 'b': fen = black_perspective_fen(fen)
-        
-        b64_img = base64.b64encode(cv2.imencode(".jpg", viz)[1]).decode('utf-8')
-        
-        if current_user.is_authenticated:
-            db.session.add(Scan(fen=f"{fen} w KQkq - 0 1", image_data=f"data:image/jpeg;base64,{b64_img}", user_id=current_user.id))
-            db.session.commit()
-            
-        return jsonify({'fen': f"{fen} w KQkq - 0 1", 'cropped_image': f"data:image/jpeg;base64,{b64_img}"})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+    if INTERPRETER is None:
+        return jsonify({"error": "Model not loaded"}), 500
 
-# ... [Email Logic Same as Before] ...
-def send_email_async(feedback_text, tags, fen, original_img_bytes, crop_img_bytes):
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    img_bytes = request.files['file'].read()
+    img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+    processed = process_image(img)
+
+    if not processed:
+        return jsonify({'error': 'Chessboard not detected'}), 400
+
+    squares, viz, _ = processed
+    indices = predict_with_voting(INTERPRETER, squares)
+
+    labels = [CLASS_NAMES[i] for i in indices]
+    fen = assemble_fen_from_predictions(labels)
+
+    if request.form.get('pov') == 'b':
+        fen = black_perspective_fen(fen)
+
+    b64 = base64.b64encode(cv2.imencode(".jpg", viz)[1]).decode("utf-8")
+
+    if current_user.is_authenticated:
+        scan = Scan(fen=fen, image_data=f"data:image/jpeg;base64,{b64}", user_id=current_user.id)
+        db.session.add(scan)
+        db.session.commit()
+
+    return jsonify({"fen": fen, "cropped_image": f"data:image/jpeg;base64,{b64}"})
+
+
+# ===========================
+#  EMAIL HANDLER
+# ===========================
+def send_email_async(text, tags, fen, orig_bytes, crop_bytes):
     try:
         msg = MIMEMultipart()
         msg['From'] = EMAIL_SENDER
         msg['To'] = EMAIL_RECEIVER
         msg['Subject'] = f"[SnapFen Report] {tags}"
-        body = f"<h3>Feedback</h3><p>{feedback_text}</p><p>FEN: {fen}</p>"
-        msg.attach(MIMEText(body, 'html'))
-        
-        if original_img_bytes:
-            img1 = MIMEImage(original_img_bytes, name="original.png")
-            msg.attach(img1)
-        if crop_img_bytes:
-            img2 = MIMEImage(crop_img_bytes, name="crop.png")
-            msg.attach(img2)
 
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            server.send_message(msg)
+        msg.attach(MIMEText(f"<h3>Feedback</h3><p>{text}</p><p>FEN: {fen}</p>", 'html'))
+
+        if orig_bytes:
+            msg.attach(MIMEImage(orig_bytes, name="original.png"))
+        if crop_bytes:
+            msg.attach(MIMEImage(crop_bytes, name="crop.png"))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
     except Exception as e:
-        print(f"Email Error: {e}")
+        print("Email error:", e)
 
 @app.route('/report_issue', methods=['POST'])
 def report_issue():
-    tags = request.form.get('tags', 'General')
-    feedback = request.form.get('feedback', 'No details')
-    fen = request.form.get('fen', 'N/A')
+    tags = request.form.get('tags')
+    text = request.form.get('feedback')
+    fen = request.form.get('fen')
     
-    orig_file = request.files.get('original_image')
-    crop_file = request.files.get('cropped_image') 
-    
-    orig_bytes = orig_file.read() if orig_file else None
-    crop_bytes = crop_file.read() if crop_file else None
+    orig = request.files.get('original_image')
+    crop = request.files.get('cropped_image')
 
-    thread = threading.Thread(target=send_email_async, args=(feedback, tags, fen, orig_bytes, crop_bytes))
-    thread.start()
+    threading.Thread(
+        target=send_email_async,
+        args=(text, tags, fen, orig.read() if orig else None, crop.read() if crop else None)
+    ).start()
 
-    return jsonify({'status': 'success'})
+    return jsonify({"status": "success"})
 
-with app.app_context(): db.create_all()
+# ===========================
+#  APP STARTUP
+# ===========================
 load_resources()
-if __name__ == '__main__': app.run(debug=True, port=5000)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
