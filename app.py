@@ -1337,5 +1337,22 @@ def report_issue():
 # ===========================
 load_resources()
 
+@app.route('/debug-files')     ## route to print the directory structure on render
+def debug_files():
+    import os
+    base = os.path.dirname(__file__)
+    tree = []
+
+    for root, dirs, files in os.walk(base):
+        level = root.replace(base, "").count(os.sep)
+        indent = " " * 4 * level
+        tree.append(f"{indent}{os.path.basename(root)}/")
+        subindent = " " * 4 * (level + 1)
+        for f in files:
+            tree.append(f"{subindent}{f}")
+
+    return "<pre>" + "\n".join(tree) + "</pre>"
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
