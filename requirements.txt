@@ -10,3 +10,4 @@ psycopg2-binary
 email-validator
 python-dotenv
 python-chess
+sib-api-v3-sdk
