@@ -1297,30 +1297,9 @@ def predict():
     return jsonify({"fen": fen, "cropped_image": f"data:image/jpeg;base64,{b64}"})
 
 
-# ===========================
-#  EMAIL HANDLER
-# ===========================
-def send_email_async(text, tags, fen, orig_bytes, crop_bytes):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = EMAIL_SENDER
-        msg['To'] = EMAIL_RECEIVER
-        msg['Subject'] = f"[SnapFen Report] {tags}"
-
-        msg.attach(MIMEText(f"<h3>Feedback</h3><p>{text}</p><p>FEN: {fen}</p>", 'html'))
-
-        if orig_bytes:
-            msg.attach(MIMEImage(orig_bytes, name="original.png"))
-        if crop_bytes:
-            msg.attach(MIMEImage(crop_bytes, name="crop.png"))
-
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-    except Exception as e:
-        print("Email error:", e)
+# --- EMAIL LOGIC ---
+import threading
+from email_sending import send_report_email   # <-- NEW IMPORT
 
 @app.route('/report_issue', methods=['POST'])
 def report_issue():
@@ -1331,9 +1310,12 @@ def report_issue():
     orig = request.files.get('original_image')
     crop = request.files.get('cropped_image')
 
+    orig_bytes = orig.read() if orig else None
+    crop_bytes = crop.read() if crop else None
+
     threading.Thread(
-        target=send_email_async,
-        args=(text, tags, fen, orig.read() if orig else None, crop.read() if crop else None)
+        target=send_report_email,
+        args=(text, tags, fen, orig_bytes, crop_bytes)
     ).start()
 
     return jsonify({"status": "success"})
