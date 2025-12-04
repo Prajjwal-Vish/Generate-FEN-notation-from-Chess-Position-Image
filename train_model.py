@@ -1,117 +1,204 @@
+### This is the code that i used to train a new CNN model form scratch to identify chess pieces
+
 import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras.layers import GlobalAveragePooling2D, Dropout, Dense
-from tensorflow.keras.models import Model
+from tensorflow import keras
+from tensorflow.keras import layers, models
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import numpy as np
-import matplotlib.pyplot as plt
+import os
+import zipfile
+import shutil
 from pathlib import Path
 
-# --- Configuration ---
-DATA_DIR = 'raw_data'      # Assumes raw_data is in the same folder
-MODEL_DIR = 'model'        # Folder to save the model
-LABELS_DIR = 'labels'      # Folder to save the labels
-IMAGE_SIZE = (64, 64)
+# 1. CONFIGURATION & SETUP
+from google.colab import drive
+drive.mount('/content/drive')
+
+# --- USER PATHS (Update these if your folder names differ) ---
+# Folder on Drive where your data lives
+DRIVE_FOLDER = Path('/content/drive/My Drive/chess-to-fen-project-dataset/')
+
+# Input files
+ZIP_FILE = DRIVE_FOLDER / 'raw_data2.zip'
+LABELS_FILE = DRIVE_FOLDER / 'class_names.txt'
+
+# Output files
+OUTPUT_TFLITE_MODEL = DRIVE_FOLDER / 'chess_model_v5.tflite'
+OUTPUT_KERAS_MODEL = DRIVE_FOLDER / 'chess_model_v5.keras'
+
+# Training Config
+IMG_SIZE = (64, 64)
 BATCH_SIZE = 32
-VAL_SPLIT = 0.2
-EPOCHS = 25 # Increased epochs for better training
+EPOCHS = 50
 
-def train():
-    print(f"TensorFlow Version: {tf.__version__}")
-    print(f"Loading images from: {DATA_DIR}")
+# ==========================================
+# 2. DATA EXTRACTION
+# ==========================================
+print("\n--- Step 2: Extracting Data ---")
+LOCAL_DATA_ROOT = Path('/content/dataset')
 
-    # Create directories if they don't exist
-    Path(MODEL_DIR).mkdir(exist_ok=True)
-    Path(LABELS_DIR).mkdir(exist_ok=True)
+# Clean up previous runs
+if LOCAL_DATA_ROOT.exists():
+    shutil.rmtree(LOCAL_DATA_ROOT)
+LOCAL_DATA_ROOT.mkdir(parents=True, exist_ok=True)
 
-    train_datagen = ImageDataGenerator(
-        rescale=1./255,
-        rotation_range=20,       # Increased augmentation
-        width_shift_range=0.2,   # Increased augmentation
-        height_shift_range=0.2,  # Increased augmentation
-        zoom_range=0.2,          # Increased augmentation
-        horizontal_flip=True,
-        fill_mode='nearest',
-        validation_split=VAL_SPLIT
-    )
+# Unzip
+print(f"Unzipping {ZIP_FILE}...")
+try:
+    with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
+        zip_ref.extractall(LOCAL_DATA_ROOT)
+except FileNotFoundError:
+    print(f"ERROR: Could not find {ZIP_FILE}. Check your Drive path!")
+    raise
 
-    val_datagen = ImageDataGenerator(
-        rescale=1./255,
-        validation_split=VAL_SPLIT
-    )
+# Find the specific subfolder containing the class folders
+DATA_DIR = None
+for root, dirs, files in os.walk(LOCAL_DATA_ROOT):
+    # We look for a folder that has subdirectories (the classes)
+    if len(dirs) > 1:
+        DATA_DIR = Path(root)
+        break
 
-    train_generator = train_datagen.flow_from_directory(
-        DATA_DIR,
-        target_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='categorical',
-        subset='training',
-        color_mode='rgb'
-    )
+print(f"Data Source: {DATA_DIR}")
 
-    validation_generator = val_datagen.flow_from_directory(
-        DATA_DIR,
-        target_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='categorical',
-        subset='validation',
-        color_mode='rgb'
-    )
+# ==========================================
+# 3. LOAD LABELS & DATASET
+# ==========================================
+print("\n--- Step 3: Loading Datasets ---")
 
-    class_names = list(train_generator.class_indices.keys())
-    num_classes = len(class_names)
+# Read strict class order from text file
+if LABELS_FILE.exists():
+    with open(LABELS_FILE, 'r') as f:
+        CUSTOM_CLASS_NAMES = [line.strip() for line in f.readlines() if line.strip()]
+    print(f"Forcing Class Order: {CUSTOM_CLASS_NAMES}")
+else:
+    raise FileNotFoundError("class_labels.txt not found! This is required to match your app.")
 
-    print(f"\nFound {train_generator.samples} training images belonging to {num_classes} classes.")
-    print(f"Found {validation_generator.samples} validation images belonging to {num_classes} classes.")
-    print(f"Class names: {class_names}")
+# Load Training Data
+train_dataset = tf.keras.utils.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_names=CUSTOM_CLASS_NAMES, # Crucial: Enforces index mapping
+    label_mode='int'
+)
 
-    # --- Define Model ---
-    print("\nDefining the model using Transfer Learning (MobileNetV2)...")
-    base_model = MobileNetV2(
-        weights='imagenet',
-        include_top=False,
-        input_shape=(IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    )
-    base_model.trainable = False  # Freeze the base
+# Load Validation Data
+validation_dataset = tf.keras.utils.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_names=CUSTOM_CLASS_NAMES,
+    label_mode='int'
+)
 
-    # Add custom head
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    x = Dropout(0.2)(x)
-    predictions = Dense(num_classes, activation='softmax')(x)
-    model = Model(inputs=base_model.input, outputs=predictions)
+# Performance Optimization
+AUTOTUNE = tf.data.AUTOTUNE
+train_dataset = train_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+validation_dataset = validation_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-    model.compile(
-        optimizer='adam',
-        loss='categorical_crossentropy',
-        metrics=['accuracy']
-    )
-    model.summary()
+# ==========================================
+# 4. BUILD CUSTOM MODEL (For Deployment)
+# ==========================================
+print("\n--- Step 4: Building Custom Architecture ---")
 
-    # --- Train Model ---
-    print("\n--- Starting Model Training ---")
-    history = model.fit(
-        train_generator,
-        epochs=EPOCHS,
-        validation_data=validation_generator,
-        steps_per_epoch=train_generator.samples // BATCH_SIZE,
-        validation_steps=validation_generator.samples // BATCH_SIZE
-    )
+def build_deployable_model(num_classes):
+    model = models.Sequential([
+        layers.Input(shape=(64, 64, 3)),
 
-    print("\n--- Model Training Complete ---")
+        # --- A. Augmentation (Runs on GPU during training) ---
+        # Solving the "Mobile Screenshot" issues:
+        layers.RandomFlip("horizontal"),
+        layers.RandomRotation(0.1),
+        layers.RandomZoom(0.1),
+        layers.RandomContrast(0.2),    # Fixes display differences
+        layers.RandomBrightness(0.2),  # Fixes "Night Mode" issues
 
-    # --- Save Artifacts ---
-    model_path = Path(MODEL_DIR) / "chess_piece_model.keras"
-    labels_path = Path(LABELS_DIR) / "class_names.txt"
+        # --- B. Preprocessing ---
+        # Normalize pixel values (0-255 -> 0-1) inside the model
+        layers.Rescaling(1./255),
 
-    model.save(model_path)
-    print(f"\nSaved trained model to: {model_path}")
-    
-    with open(labels_path, 'w') as f:
-        f.write("\n".join(class_names))
-    print(f"Saved class names to: {labels_path}")
+        # --- C. Feature Extraction (Lightweight CNN) ---
+        # Block 1
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(), # 64 -> 32
 
-if __name__ == "__main__":
-    # To run this script, activate your venv and run:
-    # python train_model.py
-    train()
+        # Block 2
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(), # 32 -> 16
+
+        # Block 3
+        layers.Conv2D(128, 3, padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(), # 16 -> 8
+
+        # Block 4 (Spatial Features)
+        layers.Conv2D(128, 3, padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        # No pooling here - we want to keep the 8x8 grid for color context
+
+        # --- D. Classification ---
+        layers.GlobalAveragePooling2D(),
+        layers.Dropout(0.5), # Prevents overfitting on small data
+
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.3),
+
+        layers.Dense(num_classes, activation='softmax')
+    ])
+    return model
+
+model = build_deployable_model(len(CUSTOM_CLASS_NAMES))
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+model.summary()
+
+# ==========================================
+# 5. TRAINING
+# ==========================================
+print("\n--- Step 5: Training ---")
+
+callbacks = [
+    EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+    ModelCheckpoint('temp_best.keras', monitor='val_accuracy', save_best_only=True)
+]
+
+history = model.fit(
+    train_dataset,
+    validation_data=validation_dataset,
+    epochs=EPOCHS,
+    callbacks=callbacks
+)
+
+# ==========================================
+# 6. EXPORT FOR DEPLOYMENT
+# ==========================================
+print("\n--- Step 6: Converting to TFLite ---")
+
+# 1. Save Keras Backup
+model.save(OUTPUT_KERAS_MODEL)
+print(f"Backup Keras model saved to: {OUTPUT_KERAS_MODEL}")
+
+# 2. Convert to TFLite
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+
+# 3. Save TFLite to Drive
+with open(OUTPUT_TFLITE_MODEL, 'wb') as f:
+    f.write(tflite_model)
+
+print(f"\nSUCCESS! Deployment model ready.")
+print(f"Location: {OUTPUT_TFLITE_MODEL}")
+print("Size: {:.2f} MB".format(len(tflite_model) / 1024 / 1024))
