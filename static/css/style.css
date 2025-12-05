@@ -55,3 +55,65 @@ body {
     border-color: #3b82f6;
     color: white;
 }
+
+/* Modern Cropper Styling*/
+
+/* 1. The Overlay: Darken the area outside the selection */
+.cropper-modal {
+    background-color: #0f172a; 
+    opacity: 0.85; 
+}
+
+/* 2. The Crop Box: Thicker white border, slightly rounded */
+.cropper-view-box {
+    outline: 2px solid white; 
+    outline-color: rgba(255, 255, 255, 1);
+    border-radius: 4px; 
+}
+
+/* 3. Remove the default blue selection line */
+.cropper-face {
+    background-color: inherit !important;
+}
+
+/* 4. Grid Lines: Subtle white solid lines */
+.cropper-dashed {
+    border-color: rgba(255, 255, 255, 0.3);
+    border-width: 1px; 
+    border-style: solid;
+}
+
+/* 5. Hide the center crosshair */
+.cropper-center {
+    display: none; 
+}
+
+/* 6. The Handles: Round Blue Dots with White Border */
+.cropper-point {
+    background-color: #3b82f6; /* Tailwind Blue-500 */
+    width: 12px;
+    height: 12px;
+    border-radius: 50%; 
+    opacity: 1;
+    border: 2px solid white;
+}
+
+/* Perfect centering for the handles */
+.cropper-point.point-ne { top: -6px; right: -6px; }
+.cropper-point.point-nw { top: -6px; left: -6px; }
+.cropper-point.point-sw { bottom: -6px; left: -6px; }
+.cropper-point.point-se { bottom: -6px; right: -6px; }
+
+/* Hide the middle handles (North, South, East, West) for a cleaner look */
+.cropper-point.point-n, 
+.cropper-point.point-s, 
+.cropper-point.point-e, 
+.cropper-point.point-w { 
+    display: none; 
+} 
+
+/* 7. Hide the checkerboard background */
+.cropper-bg {
+    background-image: none;
+    background-color: transparent;
+}
