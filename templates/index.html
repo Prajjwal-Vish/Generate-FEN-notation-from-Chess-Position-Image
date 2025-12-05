@@ -15,15 +15,12 @@
 <body class="flex flex-col text-base text-gray-200 relative pt-24 bg-slate-900">
 
     <nav class="fixed top-0 w-full z-50 glass-nav px-4 md:px-8 flex items-center justify-between h-[90px]">
-        
         <div class="flex items-center gap-3 z-20 md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
             <h1 class="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 leading-tight whitespace-nowrap transition-all duration-300">
                 <i class="fa-solid fa-chess-knight mr-2"></i>SnapFen
             </h1>
         </div>
-
         <div class="flex items-center gap-2 md:gap-4 ml-auto z-20 relative bg-[#0f172a]/50 md:bg-transparent rounded-xl p-1 md:p-0 backdrop-blur-sm md:backdrop-filter-none">
-            
             {% if user.is_authenticated %}
                 <button id="btn-history" class="flex items-center gap-2 text-gray-300 hover:text-white transition px-2 py-2 md:px-3 md:py-1.5 rounded-lg hover:bg-white/10">
                     <i class="fa-solid fa-clock-rotate-left text-xl md:text-lg"></i>
@@ -38,12 +35,8 @@
 
             {% if user.is_authenticated %}
                 <div class="h-6 w-px bg-white/20 mx-1"></div>
-                <span class="text-xs md:text-sm text-gray-400 font-mono max-w-[80px] md:max-w-xs truncate block">
-                    {{ user.username }}
-                </span>
-                <a href="/logout" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg text-xs md:text-sm font-bold hover:bg-red-500/20 transition whitespace-nowrap">
-                    Logout
-                </a>
+                <span class="text-xs md:text-sm text-gray-400 font-mono max-w-[80px] md:max-w-xs truncate block">{{ user.username }}</span>
+                <a href="/logout" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg text-xs md:text-sm font-bold hover:bg-red-500/20 transition whitespace-nowrap">Logout</a>
             {% else %}
                 <div class="h-6 w-px bg-white/5 mx-1"></div>
                 <button onclick="window.location.href='/login'" class="text-gray-300 hover:text-white font-bold text-sm transition mr-2">Log In</button>
@@ -72,103 +65,116 @@
 
     <main class="w-full min-h-[calc(100vh-6rem)] flex flex-col md:flex-row animate-fade-in relative z-10">
         
-        <div class="w-full md:w-1/2 p-6 md:p-8 flex flex-col border-b md:border-b-0 md:border-r border-white/10 justify-start pt-12 md:pt-16">
-            <div class="mb-4 text-center">
+        <div class="w-full md:w-1/2 p-6 md:p-8 lg:p-12 flex flex-col border-b md:border-b-0 md:border-r border-white/10 justify-start pt-12 md:pt-16">
+            <div class="mb-6 text-center">
                 <h2 class="text-2xl md:text-3xl font-bold text-gray-200 leading-snug">
                     Upload a screenshot.<span class="text-blue-400 block sm:inline"> We'll handle the rest.</span>
                 </h2>
             </div>
 
-            <div id="drop-zone" class="w-full max-w-lg mx-auto aspect-[4/3] flex flex-col justify-center items-center border-4 border-dashed border-white/20 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer relative group mt-2">
+            <div id="drop-zone" class="w-full min-h-[50vh] flex flex-col justify-center items-center border-4 border-dashed border-white/20 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer relative group mt-2">
                 <input type="file" id="file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                 <div class="text-center space-y-4 pointer-events-none">
-                    <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-400"></i>
+                    <div class="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-400"></i>
                     </div>
                     <div>
-                        <p class="text-xl font-bold text-gray-200">Drag & drop or click</p>
-                        <p class="text-sm text-gray-500 mt-1">Supports PNG, JPG, JPEG</p>
+                        <p class="text-2xl font-bold text-gray-200">Drag & drop or click</p>
+                        <p class="text-base text-gray-500 mt-1">Supports PNG, JPG, JPEG</p>
                     </div>
                 </div>
             </div>
 
-            <div id="preview-container" class="hidden w-full max-w-lg mx-auto flex flex-col mt-4">
-                <div class="w-full relative rounded-2xl overflow-hidden border border-white/20 bg-black/40 flex items-center justify-center p-2">
-                    <img id="main-preview" src="" class="max-w-full max-h-[50vh] object-contain shadow-xl rounded-lg">
+            <div id="preview-container" class="hidden w-full max-w-3xl mx-auto flex flex-col mt-4">
+                
+                <div class="w-full relative rounded-2xl overflow-hidden border border-white/20 bg-black/40 flex items-center justify-center p-2 min-h-[50vh]">
+                    <div id="image-wrapper" class="w-full h-full flex justify-center">
+                        <img id="main-preview" src="" class="max-w-full max-h-[60vh] object-contain shadow-xl rounded-lg block">
+                    </div>
                 </div>
-                <div class="grid grid-cols-3 gap-3 mt-4">
-                    <button id="btn-new-image" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-base rounded-xl font-bold transition shadow-lg border border-white/10 flex items-center justify-center gap-2">
+                
+                <div id="action-buttons" class="grid grid-cols-3 gap-4 mt-6">
+                    <button id="btn-new-image" class="py-4 px-6 bg-emerald-600 hover:bg-emerald-500 text-white text-lg rounded-xl font-bold transition shadow-lg border border-white/10 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-plus"></i><span>New</span>
                     </button>
-                    <button id="btn-crop-modal" class="py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white text-base rounded-xl font-bold transition shadow-lg border border-white/10 flex items-center justify-center gap-2">
+                    <button id="btn-crop-toggle" class="py-4 px-6 bg-gray-800 hover:bg-gray-700 text-white text-lg rounded-xl font-bold transition shadow-lg border border-white/10 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-crop-simple"></i><span>Crop</span>
                     </button>
-                    <button id="btn-quick-scan" class="py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white text-base rounded-xl font-bold transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <button id="btn-quick-scan" class="py-4 px-6 bg-blue-600 hover:bg-blue-500 text-white text-lg rounded-xl font-bold transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-bolt"></i><span>Scan</span>
+                    </button>
+                </div>
+
+                <div id="crop-buttons" class="hidden grid grid-cols-2 gap-4 mt-6">
+                    <button id="btn-cancel-crop" class="py-4 px-6 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-lg rounded-xl font-bold transition border border-red-500/30 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+                    </button>
+                    <button id="btn-confirm-crop" class="py-4 px-6 bg-green-600 hover:bg-green-500 text-white text-lg rounded-xl font-bold transition shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check"></i><span>Apply Crop</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="w-full md:w-1/2 bg-black/20 backdrop-blur-sm p-6 md:p-8 flex flex-col relative justify-start pt-12 md:pt-16">
-            <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-                <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <div class="w-full md:w-1/2 bg-black/20 backdrop-blur-sm p-6 md:p-8 lg:p-12 flex flex-col relative justify-start pt-12 md:pt-16">
+            <div class="mb-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <i class="fa-solid fa-sliders"></i> Board Configuration
                 </h3>
-                <div class="flex flex-col xl:flex-row gap-4 justify-between">
+                <div class="flex flex-col xl:flex-row gap-6 justify-between">
                     <div class="flex items-center justify-between gap-3 w-full">
-                        <span class="text-gray-300 font-bold text-sm">Black's View?</span>
+                        <span class="text-gray-300 font-bold text-lg">Black's View?</span>
                         <label class="relative inline-flex items-center cursor-pointer group">
                             <input type="checkbox" id="pov-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 transition-colors"></div>
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 transition-colors"></div>
                         </label>
                     </div>
                     <div class="hidden xl:block w-px bg-white/10"></div>
                     <div class="xl:hidden h-px w-full bg-white/10"></div>
                     <div class="flex items-center justify-between gap-3 w-full">
-                        <span class="text-gray-300 font-bold text-sm">Side to Move</span>
+                        <span class="text-gray-300 font-bold text-lg">Side to Move</span>
                         <label class="relative inline-flex items-center cursor-pointer group">
                             <input type="checkbox" id="turn-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 transition-colors"></div>
-                            <span id="turn-label" class="ml-2 text-xs font-bold text-white w-10 text-center">White</span>
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 transition-colors"></div>
+                            <span id="turn-label" class="ml-3 text-sm font-bold text-white w-12 text-center">White</span>
                         </label>
                     </div>
                 </div>
             </div>
 
-            <div id="empty-result-state" class="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-[200px]">
-                <div class="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-4 animate-pulse">
-                    <i class="fa-solid fa-chess-board text-5xl opacity-30"></i>
+            <div id="empty-result-state" class="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-[300px]">
+                <div class="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6 animate-pulse">
+                    <i class="fa-solid fa-chess-board text-7xl opacity-30"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-400 text-center">Ready to Analyze</h3>
-                <p class="text-sm opacity-60 mt-2 text-center max-w-xs">Configure options & upload.</p>
+                <h3 class="text-2xl font-bold text-gray-400 text-center">Ready to Analyze</h3>
+                <p class="text-base opacity-60 mt-2 text-center max-w-xs">Configure options & upload.</p>
             </div>
 
-            <div id="result-content" class="hidden space-y-6">
-                <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <span class="text-xs font-bold uppercase tracking-wider">Analysis Complete</span>
+            <div id="result-content" class="hidden space-y-8">
+                <div class="inline-flex items-center gap-4 px-6 py-3 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                    <div class="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-sm font-bold uppercase tracking-wider">Analysis Complete</span>
                 </div>
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Generated FEN</label>
+                <div class="space-y-4">
+                    <label class="text-xs font-bold text-blue-400 uppercase tracking-widest">Generated FEN</label>
                     <div class="flex group">
-                        <input type="text" id="fen-text" readonly class="flex-1 p-4 bg-gray-900/80 border border-gray-700 border-r-0 rounded-l-xl font-mono text-lg text-blue-300 focus:outline-none focus:border-blue-500 transition placeholder-gray-600" value="...">
-                        <button id="btn-copy" class="bg-gray-800 border border-gray-700 border-l-0 text-gray-300 px-6 rounded-r-xl hover:bg-gray-700 hover:text-white transition active:bg-gray-600">
-                            <i class="fa-regular fa-copy text-xl"></i>
+                        <input type="text" id="fen-text" readonly class="flex-1 p-6 bg-gray-900/80 border border-gray-700 border-r-0 rounded-l-2xl font-mono text-xl text-blue-300 focus:outline-none focus:border-blue-500 transition placeholder-gray-600" value="...">
+                        <button id="btn-copy" class="bg-gray-800 border border-gray-700 border-l-0 text-gray-300 px-8 rounded-r-2xl hover:bg-gray-700 hover:text-white transition active:bg-gray-600">
+                            <i class="fa-regular fa-copy text-2xl"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <a id="link-lichess" href="#" target="_blank" class="group py-3 px-4 bg-[#252529] hover:bg-[#303036] border border-white/10 rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
-                        <img src="https://lichess1.org/assets/logo/lichess-favicon-32.png" class="w-5 opacity-80 group-hover:opacity-100"><span class="text-sm font-bold text-gray-300 group-hover:text-white">Lichess</span>
+                <div class="grid grid-cols-2 gap-6">
+                    <a id="link-lichess" href="#" target="_blank" class="group py-4 px-6 bg-[#252529] hover:bg-[#303036] border border-white/10 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg">
+                        <img src="https://lichess1.org/assets/logo/lichess-favicon-32.png" class="w-6 opacity-80 group-hover:opacity-100"><span class="text-lg font-bold text-gray-300 group-hover:text-white">Lichess</span>
                     </a>
-                    <a id="link-chesscom" href="#" target="_blank" class="group py-3 px-4 bg-[#312e2b] hover:bg-[#403d39] border border-white/10 rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
-                        <img src="https://www.chess.com/bundles/web/images/favicon-32x32.png" class="w-5 opacity-80 group-hover:opacity-100"><span class="text-sm font-bold text-gray-300 group-hover:text-white">Chess.com</span>
+                    <a id="link-chesscom" href="#" target="_blank" class="group py-4 px-6 bg-[#312e2b] hover:bg-[#403d39] border border-white/10 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg">
+                        <img src="https://www.chess.com/bundles/web/images/favicon-32x32.png" class="w-6 opacity-80 group-hover:opacity-100"><span class="text-lg font-bold text-gray-300 group-hover:text-white">Chess.com</span>
                     </a>
                 </div>
-                <div class="pt-6 border-t border-white/10 flex flex-col items-center">
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Verify Board Crop</p>
-                    <img id="analyzed-preview" src="" class="h-40 w-auto object-contain rounded-lg border border-white/10 shadow-lg">
+                <div class="pt-8 border-t border-white/10 flex flex-col items-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Verify Board Crop</p>
+                    <img id="analyzed-preview" src="" class="h-48 w-auto object-contain rounded-2xl border border-white/10 shadow-lg">
                 </div>
             </div>
         </div>
@@ -327,16 +333,8 @@
             <button id="btn-submit-bug" class="w-full bg-red-600 hover:bg-red-500 text-white py-2 rounded-xl font-bold transition text-sm">Submit Bug Report</button>
         </div>
     </div>
-    
-    <div id="crop-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-[#1a1c2c] w-full max-w-4xl h-[80vh] flex flex-col rounded-3xl border border-white/10 overflow-hidden">
-            <div class="p-4 flex justify-between bg-[#0f172a]"><h3 class="text-lg font-bold text-white">Crop Image</h3><button id="btn-close-modal"><i class="fa-solid fa-xmark text-gray-400"></i></button></div>
-            <div class="flex-1 bg-black relative"><div class="h-full w-full"><img id="crop-image-target" src="" class="block max-w-full max-h-full mx-auto"></div></div>
-            <div class="p-4 bg-[#0f172a] text-right"><button id="btn-confirm-crop" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">Confirm</button></div>
-        </div>
-    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=1.4"></script>
 </body>
 </html>
