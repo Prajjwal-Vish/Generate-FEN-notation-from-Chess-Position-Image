@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cropper = new Cropper(mainPreview, {
             viewMode: 1, 
             dragMode: 'move',
-            autoCropArea: 0.95,
+            autoCropArea: 0.8,
             background: false, 
             guides: true,
             center: true,
