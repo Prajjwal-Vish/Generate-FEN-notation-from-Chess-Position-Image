@@ -6,92 +6,75 @@
     <title>Login - SnapFen</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1a1c2c 50%, #4a192c 100%);
-            color: #e2e8f0;
-        }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+    <script src="{{ url_for('static', filename='js/login_auth.js') }}" defer></script>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-900 flex items-center justify-center min-h-screen text-gray-200 relative overflow-hidden">
 
-    <!-- Increased width to max-w-3xl and padding to p-16/p-20 -->
-    <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-12 md:p-20 rounded-[3rem] shadow-2xl w-full max-w-3xl animate-fade-in">
+    <a href="/" class="absolute top-6 left-6 flex items-center gap-3 text-gray-400 hover:text-white transition z-50 group">
+        <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 group-hover:-translate-x-1 transition-all duration-300">
+            <i class="fa-solid fa-arrow-left text-sm"></i>
+        </div>
+        <span class="text-sm font-bold tracking-wide">Home</span>
+    </a>
+
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+
+    <div class="w-full max-w-sm bg-[#1a1c2c]/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl relative z-10 animate-fade-in-up">
         
-        <div class="text-center mb-16">
-            <a href="/" class="text-6xl md:text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 block mb-6">
-                <i class="fa-solid fa-chess-knight mr-4"></i>SnapFen
+        <div class="text-center mb-6">
+            <a href="/" class="inline-block mb-3 text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                <i class="fa-solid fa-chess-knight mr-2"></i>SnapFen
             </a>
-            <p class="text-gray-400 text-2xl font-medium">Welcome back, Grandmaster.</p>
+            <h2 class="text-xl font-bold text-white">Welcome Back</h2>
+            <p class="text-xs text-gray-400 mt-1">Sign in to access your history.</p>
         </div>
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="mb-8 p-5 rounded-2xl text-xl font-bold text-center 
-                        {% if category == 'error' %} bg-red-500/20 text-red-300 border border-red-500/30
-                        {% else %} bg-green-500/20 text-green-300 border border-green-500/30 {% endif %}">
-                        {{ message }}
-                    </div>
+                <div class="mb-4 p-3 rounded-lg text-xs text-center border {% if category == 'error' %}bg-red-500/10 border-red-500/20 text-red-300{% else %}bg-green-500/10 border-green-500/20 text-green-300{% endif %}">
+                    {{ message }}
+                </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <form method="POST" class="space-y-10">
+        <form action="/login" method="POST" class="space-y-4">
             <div>
-                <label class="block text-xl font-bold text-gray-300 mb-4 ml-2">Email Address</label>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 ml-1">Email</label>
                 <div class="relative">
-                    <i class="fa-solid fa-envelope absolute left-6 top-6 text-2xl text-gray-500"></i>
-                    <input type="email" name="email" placeholder="bobby.fischer@example.com" required
-                        class="w-full pl-20 pr-8 py-6 bg-black/30 border-2 border-white/10 rounded-3xl focus:outline-none focus:border-blue-500 text-white text-2xl placeholder-gray-600 transition shadow-inner">
+                    <span class="absolute left-3 top-2.5 text-gray-500 text-sm"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email" name="email" required class="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-blue-500 transition placeholder-gray-600" placeholder="you@example.com">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xl font-bold text-gray-300 mb-4 ml-2">Password</label>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 ml-1">Password</label>
                 <div class="relative">
-                    <i class="fa-solid fa-lock absolute left-6 top-6 text-2xl text-gray-500"></i>
-                    <!-- Added ID for JS access -->
-                    <input type="password" name="password" id="passwordInput" placeholder="••••••••" required
-                        class="w-full pl-20 pr-16 py-6 bg-black/30 border-2 border-white/10 rounded-3xl focus:outline-none focus:border-blue-500 text-white text-2xl placeholder-gray-600 transition shadow-inner">
+                    <span class="absolute left-3 top-2.5 text-gray-500 text-sm"><i class="fa-solid fa-lock"></i></span>
                     
-                    <!-- Visibility Toggle Button -->
-                    <button type="button" onclick="togglePassword()" class="absolute right-6 top-6 text-gray-500 hover:text-white transition focus:outline-none">
-                        <i class="fa-solid fa-eye text-2xl" id="eyeIcon"></i>
+                    <input type="password" name="password" id="passwordInput" required class="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white focus:outline-none focus:border-blue-500 transition placeholder-gray-600" placeholder="••••••••">
+                    
+                    <button type="button" onclick="togglePassword()" class="absolute right-3 top-2.5 text-gray-500 hover:text-white transition focus:outline-none">
+                        <i class="fa-solid fa-eye text-sm" id="eyeIcon"></i>
                     </button>
                 </div>
             </div>
 
-            <button type="submit" class="w-full py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-2xl font-extrabold rounded-3xl transition shadow-xl shadow-blue-900/30 transform hover:-translate-y-1 mt-4">
-                Sign In
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-blue-500/20 text-sm mt-2">
+                Log In
             </button>
         </form>
 
-        <div class="mt-12 text-center text-gray-500 text-xl">
-            Don't have an account? 
-            <a href="/signup" class="text-blue-400 hover:text-blue-300 font-bold ml-2 underline decoration-2 underline-offset-4">Sign Up</a>
+        <div class="mt-6 text-center border-t border-white/5 pt-4">
+            <p class="text-xs text-gray-400">Don't have an account? <a href="/signup" class="text-blue-400 hover:text-blue-300 font-bold transition">Sign up</a></p>
         </div>
     </div>
 
-    <script>
-        function togglePassword() {
-            const passwordInput = document.getElementById('passwordInput');
-            const eyeIcon = document.getElementById('eyeIcon');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
-        }
-    </script>
-
+    <style>
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+    </style>
 </body>
 </html>
