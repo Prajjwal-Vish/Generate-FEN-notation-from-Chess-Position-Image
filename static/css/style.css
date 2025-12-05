@@ -1,0 +1,57 @@
+/* Custom Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
+
+/* Background */
+body {
+    background: linear-gradient(135deg, #0f172a 0%, #1a1c2c 50%, #4a192c 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Glass Navigation - Taller to accommodate title */
+.glass-nav {
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    height: 120px; /* Fixed height for bigger header */
+}
+
+/* History Drawer Animation */
+#history-drawer { transition: transform 0.3s ease-in-out; }
+#history-drawer.open { transform: translateX(0); }
+#history-drawer.closed { transform: translateX(100%); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.loader {
+    border: 4px solid rgba(255,255,255,0.1);
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+.glass-section {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.feedback-tag.selected {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
